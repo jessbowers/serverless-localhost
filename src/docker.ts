@@ -31,22 +31,26 @@ export function demux(
 }
 
 export function pull(docker: Dockerode, image: string): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     docker.pull(image, {}, (err, stream) => {
-      docker.modem.followProgress(
-        stream,
-        () => {
-          process.stdout.write('\n');
-          resolve();
-        },
-        function(event: any) {
-          readline.clearLine(process.stdout, 0);
-          readline.cursorTo(process.stdout, 0);
-          process.stdout.write(
-            `${event.status} ${event.id || ''} ${event.progress || ''}`
-          );
-        }
-      );
+      if (stream) {
+        docker.modem.followProgress(
+          stream,
+          () => {
+            process.stdout.write('\n');
+            resolve();
+          },
+          function (event: any) {
+            readline.clearLine(process.stdout, 0);
+            readline.cursorTo(process.stdout, 0);
+            process.stdout.write(
+              `${event.status} ${event.id || ''} ${event.progress || ''}`
+            );
+          }
+        );
+      } else {
+        reject(new Error(`Docker pull failed: ${err}`));
+      }
     });
   });
 }
